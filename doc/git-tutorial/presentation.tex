@@ -1,0 +1,598 @@
+\def\filepath{/home/stephenmalina/dev/templates}
+
+%http://web.mit.edu/rsi/www/pdfs/beamer-tutorial.pdf
+\documentclass[pdf]{beamer} %
+\mode<presentation>{\usetheme{Boadilla}}
+\bibliographystyle{acm}
+
+\input{\filepath/packages_beamer.tex}
+\input{\filepath/macros.tex}
+
+
+\setbeamertemplate{itemize items}[default]
+\setbeamertemplate{enumerate items}[default]
+\setbeamertemplate{section in toc}{%
+  {\inserttocsectionnumber.}~\inserttocsection}
+\setbeamertemplate{subsection in toc}{%
+  \hspace{1.2em}{\rule[0.3ex]{3pt}{3pt}}~\inserttocsubsection\par}
+\setbeamertemplate{subsubsection in toc}{%
+  \hspace{2.4em}{\rule[0.3ex]{3pt}{3pt}}~\inserttocsubsubsection\par}
+
+
+\AtBeginSection[]{
+  \begin{frame}
+  \vfill
+  \centering
+  \begin{beamercolorbox}[sep=8pt,center,shadow=true,rounded=true]{title}
+    \usebeamerfont{title}\insertsectionhead\par%
+  \end{beamercolorbox}
+  \vfill
+  \end{frame}
+}
+
+\title{Git Gud or Git Goin'}
+\subtitle{An introduction to the Git version control system for managing scientific code and experiments}
+\author{Stephen Malina}
+
+\begin{document}
+\begin{frame}
+\titlepage
+\end{frame}
+%% normal frame
+\begin{frame}{What we're going to talk about}
+    \tableofcontents
+\end{frame}
+
+\section{Introduction}
+\subsection{What is `version control' and why should I care?}
+\begin{frame}[t]{What is this `version control' thing?}
+    \begin{columns}
+        \column{.5\textwidth}
+        Literally:
+        \begin{itemize}
+            \item Track changes to a set of files over time
+            \item Manage multiple partially overlapping versions of a project
+            \item Allow people to collaborate on a project in a distributed, asynchronous fashion
+        \end{itemize}
+
+    Figuratively:
+    \begin{itemize}
+        \item `Track changes' for code
+        \item A phylogenetic tree for your project
+        \item A digital lab notebook
+    \end{itemize}
+        \column{.5\textwidth}
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.7\linewidth]{fig/xkcd}
+        \label{fig:xkcd}
+    \end{figure}
+    \end{columns}
+\end{frame}
+
+\begin{frame}[t]{Why bother?}
+Have you ever:
+\begin{itemize}
+    \item Accidentally deleted a file?
+    \item Changed some code, run an experiment, and realized something went wrong but you don't know what?
+    \item Wished you could remember how you were doing something two months ago?
+    \item Forgot to save the results of a (computational) experiment?
+    \item Gotten frustrated trying to share code or a manuscript by emailing versions back and forth?
+\end{itemize}
+
+If yes to any of the above, then version control is for you!
+\end{frame}
+
+
+\begin{frame}[t]{What about this `Git' thing?}
+    Git is a \emph{distributed} version control system\footnote{This is \emph{not} important to know as a user of Git. I have used Git for ~7 years now on a quasi-daily basis and still couldn't tell you much about differences between Git and other version control systems like CVS, SVN}.
+
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.3\linewidth]{fig/git-summary.png}
+        \caption{\href{https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control}{Source}}
+        \label{fig:git_summary}
+    \end{figure}
+\end{frame}
+
+\begin{frame}[t]{Meta: What are we hoping to accomplish today?}
+    \begin{itemize}
+        \item Learn to use Git well enough that you can use it for your own projects
+        \item Understand conceptually the data structure that Git uses to manage your project
+        \item Get exposure and pointers to additional resources for more advanced and specific use-cases
+    \end{itemize}
+
+    I tried to write this as though I was writing to myself when I first starting using Git.\footnote{My Git learning process was a more like being thrown into the deep end, but that's a story for another day...}
+
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.4\linewidth]{fig/mowgli-1.jpg}
+        \label{fig:fig/mowgli-1}
+    \end{figure}
+\end{frame}
+
+\section{Git Basics}
+\subsection{Git Concepts: A \emph{Very} Brief Overview}
+\begin{frame}[t]{Git Concepts: A \emph{Very} Brief Overview}
+    The minimal set of concepts you'll need while working with Git\footnote{Locally that is. We'll get to how this changes once collaborators enter the mix later.}:
+    \begin{enumerate}
+        \item Repository (`repo')
+        \item Staging area
+        \item Diff
+        \item Commit
+    \end{enumerate}
+    Let's start by using them in a sentence.
+    ``Open up our project in the \emph{repo}, change some code, look at the \emph{diff}, add changes to the \emph{staging area} and \emph{commit} them.''
+
+\end{frame}
+
+\begin{frame}[t]{Repositories}
+    Repositories are folders in which Git manages a set of files as a single unit
+
+    \vspace{1cm}
+    Easy way to think about this is that each repository is typically one project
+
+    \vspace{1cm}
+    Using the phylogenetic tree analogy, repository is to Git as ecosystem is to evolution
+
+    \vspace{1cm}
+    Using the lab notebook analogy, repository is to Git as individual notebook is to lab notebook
+\end{frame}
+
+\begin{frame}[fragile]{Repositories}
+    \framesubtitle{Let's make one}
+    \begin{enumerate}
+        \item Open up the command line (Terminal on Mac)
+        \item (Optional) Change to a directory in which you want to create a new sub-directory (I use \texttt{\textasciitilde/dev/})
+        \item Create the new directory which will be our new repository
+        \begin{verbatim}
+            mkdir -p ./git-tutorial
+            cd git-tutorial
+        \end{verbatim}
+    \item Check that you have Git installed (you almost definitely do)
+        \begin{verbatim}
+            git --version
+        \end{verbatim}
+    \item Initialize the Git repository
+        \begin{verbatim}
+            git init
+        \end{verbatim}
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}{Diffs, staging area, and commits}
+    \framesubtitle{From the top down}
+    \bigskip
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=.8\linewidth]{fig/staging-area-lifecycle.png}
+        \caption{\href{https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository}{Source}}
+        \label{fig:staging-area}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Diffs, staging area, and commits}
+    \framesubtitle{Do it ourselves}
+    Imagine we have some code in a repository
+
+    \bigskip
+    We currently haven't made any changes
+
+    \bigskip
+    Now, we let's change some code
+\end{frame}
+
+\begin{frame}[fragile]{Diffs, staging area, and commits}
+    \framesubtitle{Inch by inch}
+    \begin{enumerate}
+        \item Create a new file and write something inside it, e.g.
+		\begin{verbatim}
+        echo `Stephen rocks!' > stephen-is-awesome.txt
+		\end{verbatim}
+        \item Now let's see what Git thinks of this
+		\begin{verbatim}
+        git status
+		\end{verbatim}
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}{Diffs, staging area, and commits}
+    \framesubtitle{Row by row}
+    Our goal is to package this code up in a unit of work (\emph{commit})
+
+    \bigskip
+    First, we have to decide which code is going to go in this unit of work
+
+    \bigskip
+    That's what the staging area's for
+
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.5\linewidth]{fig/mowgli-2}
+        \label{fig:fig/mowgli-2}
+    \end{figure}
+\end{frame}
+
+\begin{frame}[fragile]{Diffs, staging area, and commits}
+    \framesubtitle{Gonna make this garden grow}
+   \begin{enumerate}
+       \item Git status is Git's way of telling us its understanding of the current state of the repository
+       \begin{verbatim}
+           git status # again
+           git diff
+       \end{verbatim}
+        \item Add all files to the staging area
+		\begin{verbatim}
+        git add . 
+		\end{verbatim}
+        \item Check again
+		\begin{verbatim}
+        git status
+        git diff
+        git diff --cached
+		\end{verbatim}
+        \item Notice the change
+   \end{enumerate} 
+\end{frame}
+
+\begin{frame}[fragile]{Diffs, staging area, and commits}
+    \framesubtitle{All it takes is a rake}
+   \begin{enumerate}
+       \item Now we're ready to package up our work
+       \begin{verbatim}
+           git commit
+       \end{verbatim}
+        \item Let us look upon our work
+		\begin{verbatim}
+        git add . 
+		\end{verbatim}
+        \item Check again
+		\begin{verbatim}
+        git status
+		\end{verbatim}
+        \item Notice the change
+   \end{enumerate} 
+\end{frame}
+
+
+\begin{frame}[fragile]{Diffs, staging area, and commits}
+    Let's commit this! Apparently this will not be challenging for any of you based on the survey results...
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.8\linewidth]{fig/exit-vim}
+        \caption{\href{https://stackoverflow.blog/2017/05/23/stack-overflow-helping-one-million-developers-exit-vim/}{Source}}
+        \label{fig:name}
+    \end{figure}
+\end{frame} 
+
+\begin{frame}[fragile]{Commits, diffs, \& staging area}
+    \begin{enumerate}
+        \item Commit
+            \begin{verbatim}
+                git commit
+                # Write a message 
+                # Exit your editor
+            \end{verbatim}
+        \item Check out the log
+            \begin{verbatim}
+                git log
+            \end{verbatim}
+        \item Check out the log (V2)
+            \begin{verbatim}
+                git log --pretty=oneline --graph
+                # Reminder: show a fancier log
+            \end{verbatim}
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]{A little more about commits}
+    Commit = unit of work (set of changes to files)
+
+    \bigskip
+    Commit structure: \\
+    \begin{verbatim}
+        A<-B<-C<-E<-F
+              ^     |
+              ^--D<--
+    \end{verbatim}
+
+    \bigskip
+    Commits have: authors, timestamps, SHAs
+    
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.8\linewidth]{fig/git-commit.png}
+        \label{fig:fig/git-commit}
+    \end{figure}
+\end{frame}
+
+\begin{frame}[t]{You're an expert on local development with Git now!}
+    \begin{block}{Exercise} Pick a project on your computer, initialize the Git repository and create your first commit.
+
+        \medskip
+        Things to watch out for:
+        \begin{enumerate}
+            \item You'll have a lot of files, try only adding a few
+        \item If the repository contains non-text files like PDFs, you may want to consider adding them to \href{https://git-scm.com/docs/gitignore}{gitignore}
+        \end{enumerate}
+    \end{block}
+\end{frame}
+
+
+\begin{frame}[t]{Misc notes on local development with Git}
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.8\linewidth]{fig/mowgli-3}
+        \label{fig:fig/mowgli-3}
+    \end{figure}
+\end{frame}
+
+\begin{frame}[fragile]{Git log is very customizable}
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=1\linewidth]{fig/git-log-pretty.png}
+        \caption{\href{https://mackyle.github.io/git-log-compact/}{Source}}
+        \label{fig:git-log-pretty}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Almost everything is reversible}
+    Roll-back staged changes with \texttt{git reset} and \texttt{git checkout -- }
+
+    \bigskip
+    Roll-back commits with \texttt{git revert} and \texttt{git reset}
+
+    \bigskip
+    Rewrite history with \texttt{git rebase}
+\end{frame}
+
+\begin{frame}[fragile]{If you've committed it, it's almost always recoverable}
+    \texttt{git reflog} is your friend
+
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.8\linewidth]{fig/git-reflog.png}
+        \caption{}
+        \label{fig:git-reflog}
+    \end{figure}
+    
+\end{frame}
+
+\section{Sharing is caring: Collaborating with Git(Hub)}
+\subsection{Overview of Github}
+\begin{frame}[t]{Collaborating over the interwebz}
+    So far, we've been working with local repositories
+
+    \bigskip
+    Now we're going to talk about interacting with the second portion of this picture
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.4\linewidth]{fig/git-summary.png}
+        \label{fig:git-summary}
+    \end{figure}
+\end{frame}
+
+\begin{frame}[t]{What are we trying to do when we collaborate?}
+   Fundamental challenge: We're all writing code at the same time and trying to incorporate each other's changes.
+
+   \bigskip
+   But if we just combine our different versions, then it'll be mayhem
+
+   \begin{figure}[htpb]
+       \centering
+       \includegraphics[width=0.8\linewidth]{fig/monkeys-on-keyboards.jpg}
+       \label{fig:fig/monkeys-on-keyboards}
+   \end{figure}
+\end{frame}
+
+\begin{frame}[t]{Git solves this with remotes and branches (remotes)}
+    \begin{columns}
+
+        \column{.5\textwidth}
+        \textbf{Solution}: Moar (local \textbf{and} remote) repositories
+
+        \bigskip
+        We call the copy of our repository on a server a \emph{remote}
+
+        \bigskip
+        Syncing to the remote = \emph{push}ing
+
+        \bigskip
+        Syncing from the server = \emph{pull}ing
+
+        \column{.5\textwidth}
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.8\linewidth]{fig/git-local-remote.png}
+        \label{fig:fig/git-local-remote}
+    \end{figure}
+        
+    \end{columns}
+
+\end{frame}
+
+\begin{frame}[t]{Git solves this with remotes and branches (branches)}
+    Up until now, we've been treating Git history as a series of linear commits that build on top of each other
+
+    \bigskip
+    However, there's often not just one version of our code locally and on the remote
+
+    \bigskip
+    Instead, branches allow us to split our code into multiple concurrent versions both locally and on the server
+
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.6\linewidth]{fig/git-branches.png}
+        \caption{\href{https://www.atlassian.com/git/tutorials/using-branches}{Source}}
+        \label{fig:fig/git-branches}
+    \end{figure}
+\end{frame}
+
+\begin{frame}[t]{What are branches good for?}
+    Branches can be useful for:
+    \begin{itemize}
+        \item Working on multiple different things in parallel
+        \item Sharing experimental code with collaborators without permanently adding it to the project
+        \item Cutting versions of a library
+    \end{itemize}
+
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.8\linewidth]{fig/git-branch-complex}
+        \label{fig:fig/git-branch-complex}
+    \end{figure}
+    
+\end{frame}
+
+\begin{frame}[t]{Merging, the final piece of the puzzle}
+    But of course, we also need a way to take whatever we've worked on in a branch and recombine it with our main (\texttt{master}) branch
+
+    \bigskip
+    \emph{Merging} lets you do that
+
+
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.8\linewidth]{fig/git-merge.png}
+        \caption{\href{https://www.atlassian.com/git/tutorials/using-branches/git-merge}{Source}}
+        \label{fig:fig/git-merge}
+    \end{figure}
+    
+\end{frame}
+
+\begin{frame}[t]{Github}
+    Github is just a hosted Git remote that does all the configuration for you
+    
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.7\linewidth]{fig/octocat}
+        \label{fig:octocat}
+    \end{figure}
+\end{frame}
+
+\begin{frame}[t]{Pull Requests}
+    \emph{Self-reminder: Linux kernel anecdote}
+
+    \bigskip
+    Pull requests are a way to merge code into your own or someone else's remote repository through Github
+
+    \bigskip
+    At the core, they rely on the same fundamental concepts we described above
+\end{frame}
+
+\begin{frame}[allowframebreaks, fragile]{Enough talk, let's try it!}
+    In this exercise, you're all going to create a pull request to the repository in which I created this project.
+
+    \bigskip
+    \begin{enumerate}
+        \item If you don't already have one, create a \href{https://www.github.com}{Github} account
+        \item Go to \href{https://github.com/an1lam/git-gud}{this link} and click `Star'
+        \item Now, click `Fork'
+        \item Go to your own version of this repository and click `Clone or download'
+        \item Open your command line and do
+            \begin{verbatim}
+                git clone <URL you copied>
+            \end{verbatim}
+        \item To be safe, pull from the repo to make sure you're on the most up-to-date version
+            \begin{verbatim}
+                git pull origin master
+            \end{verbatim}
+        \item Open README.md and add your name there
+        \framebreak
+        \item Go through the same steps we took before to create a commit
+        \item Create a new branch
+            \begin{verbatim}
+                # Branch name is arbitary
+                git checkout -b <your initials>/acknowledgement
+            \end{verbatim}
+        \item Push the branch
+            \begin{verbatim}
+                git push origin <branch name from prior command>
+            \end{verbatim}
+        \item Click the link it gives you for creating a pull request and follow the remaining instructions
+        \item Pull again to update your local version of the code
+            \begin{verbatim}
+                git checkout master
+                git pull origin master
+            \end{verbatim}
+    \end{enumerate}
+    
+    Yay! Now you can go and fix all the broken software on the internet!
+\end{frame}
+
+\begin{frame}[t]{Summing up}
+    We've learned a basic workflow for working locally with Git, pushing to and pulling from a remote Github, and contributing to other projects.
+
+    We discussed:
+    \begin{itemize}
+        \item Diffs
+        \item Staging area
+        \item Commits
+        \item Remotes
+        \item Branches 
+        \item Merging
+    \end{itemize}
+\end{frame}
+
+\section{Best Practices Speedrun}
+\begin{frame}[fragile]{For local development}
+    \begin{itemize}
+        \item Commit early, commit often
+        \item Try and visualize what you want to do in terms of how it changes the Git tree and then backchain the operations you need
+        \item Be nice to your future self
+            \begin{itemize}
+                \item Write informative commit messages
+            \end{itemize}
+        \item Let the commits reveal the bugs (advanced)
+        \item Follow a consistent commit message format to make git log look nice
+            \begin{itemize}
+                \item See \href{https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html}{here} and \href{https://github.com/joelparkerhenderson/git_commit_message#top-priorities}{here}
+            \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[t]{For collaboration}
+    \begin{itemize}
+        \item Push early, push often
+        \item Pick a Git flow you like (see \href{https://www.atlassian.com/git/tutorials/comparing-workflows}{here} for options) and make sure all of your collaborators use it \footnote{I personally only do rebase merges but others disagree.}
+    \end{itemize}
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.5\linewidth]{fig/mowgli-5.jpg}
+        \label{fig:mowgli-5}
+    \end{figure}
+\end{frame}
+
+\section{Advanced Resources}
+\begin{frame}[t]{Deep dives into Git}
+    \begin{itemize}
+        \item \href{https://missing.csail.mit.edu/2020/version-control/}{MIT lost semester blog post on Git}: Good, slightly more in-depth description of Git. Also has lots of links to even more in-depth resources
+        \item \href{https://onlywei.github.io/explain-git-with-d3/}{Explain Git with D3}: Interactive playground that lets you visualize what commands do to the Git tree as you run them. Conflict of interest notice: I'm friendly with the author (former coworker).
+        \item \href{https://git-scm.com/book/en/v2}{Pro Git}: Detailed book describing how to do almost anything you could ever want with Git and also a bunch about Git's internals.
+        \item \href{https://www.aosabook.org/en/git.html}{Architecture of Open Source Applications} chapter on Git. Describes the fundamental data structures that underlie Git and compares their performance to those of other VCS like Subversion.
+    \end{itemize} 
+\end{frame}
+
+\begin{frame}[t]{Git for Science}
+    \begin{itemize}
+        \item \href{https://www.github.com/greenelab}{Greene Lab's Github Page} with examples of using Git(Hub) for:
+        \begin{itemize}
+            \item \href{https://github.com/greenelab/continuous_analysis}{Reproducible computational experiments}
+            \item \href{https://www.github.com/greenelab/onboarding}{Github-based Onboarding}
+            \item \href{https://www.github.com/greenelab/deep-review\#manubot}{Manubot} for collaborative manuscripts
+            \item \href{https://www.github.com/greenelab/deep-review}{Deep Learning for Precision Medicine Review Paper} written entirely on Github
+        \end{itemize}
+        \item \href{http://notebook.madsenlab.org/labnotebook.html}{Github plus static site hosting as a lab notebook}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[t]{Questions, Comments, Etc.}
+    \begin{figure}[htpb]
+        \centering
+        \includegraphics[width=0.8\linewidth]{fig/mowgli-4.jpg}
+        \caption{}
+        \label{fig:}
+    \end{figure}
+\end{frame}
+
+\end{document}
